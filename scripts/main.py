@@ -2,24 +2,26 @@ from life_of_eurpean import load_time_use, fit_models
 from create_data import simulate_activity_log, validate_log
 import pandas as pd
 import numpy as np
+from d3blocks import D3Blocks
 
 # %% Set parameters
 # ages=['Y10-14', 'Y15-24', 'Y15-29', 'Y15-64', 'Y25-34',  'Y30-44', 'Y30-64', 'Y35-44', 'Y45-54', 'Y45-64', 'Y55-64','Y65-74', 'Y_GE60', 'Y_GE65', 'Y_GE75'])
+
 # countries=["Netherlands"],
-# countries=["Netherlands", "Germany", "Norway"],
 countries = 'all'
+# countries=["Netherlands", "Germany", "Norway"],
 
 # Number of samples per country
 k = 25
 
-# %%
+# %% Model age groups
 # df = load_time_use("estat_tus_20age.csv", ages=['TOTAL'])
 df1 = load_time_use("estat_tus_20age.csv", ages=['Y10-14'])
 df2 = load_time_use("estat_tus_20age.csv", ages=['Y25-34', 'Y30-64'])
 df3 = load_time_use("estat_tus_20age.csv", ages=['Y65-74','Y_GE75'])
-model1 = fit_models(df1, load_model=False)
-model2 = fit_models(df2, load_model=False)
-model3 = fit_models(df3, load_model=False)
+model1 = fit_models(df1)
+model2 = fit_models(df2)
+model3 = fit_models(df3)
 groups = zip([model1, model2, model3], [df1, df2, df3])
 
 # %%
@@ -69,14 +71,34 @@ X = pd.concat(Xtot, ignore_index=True)
 X = X.sort_values('datetime', ascending=False)
 X.reset_index(drop=True, inplace=True)
 
-# %%
-# Import library
-import pandas as pd
-from d3blocks import D3Blocks
-import numpy as np
+# %% Create flowchart
 
+d3 = D3Blocks()
+d3.flowgraph('''
+flowchart TD
+    C[Sleeping]
+    C --> D[Personal care]
+    C --> E[Eating]
+    D[Personal care] --> E[Eating]
+    D[Personal care] --> F[Travel]
+    E[Eating] <--> F[Travel]
+    F[Travel] <--> G[Work]
+    F[Travel] <--> H[Study/ School]
+    F[Travel] <--> I[Volunteer work]
+    F[Travel] <--> J[Sports/ Hobbies/ Unspecified]
+    G[Work] <--> H[Study/ School]
+    G[Work] <--> I[Volunteer work]
+    H[Study/ School] <--> I[Volunteer work]
+    F[Travel] <--> K[Home/ Leisure]
+    K[Home/ Leisure] <--> I[Volunteer work]
+    K[Home/ Leisure] <--> H[Study/ School]
+    K[Home/ Leisure] <--> J[Sports/ Hobbies/ Unspecified]
+    K[Home/ Leisure] <--> G[Work]
+    ''', layout='elk')
+
+# %%
 # Initialize
-d3 = D3Blocks(support=None)
+d3 = D3Blocks()
 X['opacity'] = np.random.random(size=X.shape[0])
 
 # Create the chart
@@ -85,7 +107,7 @@ d3.movingbubbles(X,
                  size=X['size'],
                  color=X['age'],
                  opacity=X['opacity'],
-                 timelines='age',
+                 timelines='country',
                  shape='age',
                  tooltip='age',
                  damper=0.2,

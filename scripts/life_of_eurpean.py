@@ -155,18 +155,8 @@ def _fit(values, lo, hi):
     return NormalFallback(values, lo, hi)
 
 
-def fit_models(df, load_model=True):
+def fit_models(df):
     """Build models[country]['time'|'percentage'][activity]."""
-    # The cache name is a fingerprint of the data actually used (activities, ages,
-    # sexes, units, values), so any change refits instead of reusing stale models.
-    fingerprint = hashlib.md5(
-        pd.util.hash_pandas_object(df, index=False).values.tobytes()
-        + f"{DURATION_UNIT}{MIN_POINTS_FOR_FIT}".encode()
-    ).hexdigest()[:10]
-    filename = f"models_{fingerprint}.pkl"
-    if os.path.isfile(filename) and load_model:
-        models = pypickle.load(filename)
-        return models
 
     models = {}
     for country in tqdm(df["country"].unique()):
@@ -184,8 +174,6 @@ def fit_models(df, load_model=True):
                 print(f"WARNING {country}: {activity} skipped "
                       f"(time data: {t is not None}, participation data: {p is not None})")
 
-    # Save models
-    pypickle.save(filename, models, overwrite=True)
     return models
 
 
